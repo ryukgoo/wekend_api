@@ -7,6 +7,7 @@ import java.util.Map;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBDeleteExpression;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
@@ -78,6 +79,49 @@ public class RecommendFriendNotification implements RequestHandler<DynamodbEvent
 	        	sendRecommendNotification(friendsList);
 	        	
 	        	if (friendsList.size() > 0) sendSelfNotification(productId, userId);
+        	} else if (record.getEventName().equals("REMOVE")) {
+//        		StreamRecord item = record.getDynamodb();
+//	        	Map<String, AttributeValue> oldImage = item.getOldImage();
+//	        	
+//	        	String likeId = oldImage.get(Configuration.ATTRIBUTE_LIKE_ID).getS();
+//	        	String userId = oldImage.get(Configuration.ATTRIBUTE_LIKE_USER_ID).getS();
+//	        	String condition = Configuration.ATTRIBUTE_LIKE_READ_STATE_LIKEUSERID + " == :likeUserId";
+//	        	condition += " and " + Configuration.ATTRIBUTE_LIKE_READ_STATE_LIKE_ID + " == :likeId";
+//	        	Map<String, AttributeValue> deleteMap = new HashMap<String, AttributeValue>();
+//	        	deleteMap.put(":likeId", new AttributeValue().withS(likeId));
+//	        	deleteMap.put(":likeUserId", new AttributeValue().withS(userId));
+//	        	DynamoDBDeleteExpression deleteExpression = new DynamoDBDeleteExpression()
+//	        			.withConditionExpression(condition)
+//	        			.withExpressionAttributeValues(deleteMap);
+//	        	
+//	        	mapper.delete(LikeReadState.class, deleteExpression);
+	        	
+        		StreamRecord item = record.getDynamodb();
+        		Map<String, AttributeValue> oldImage = item.getOldImage();
+        		
+        		String likeId = oldImage.get(Configuration.ATTRIBUTE_LIKE_ID).getS();
+        		String likeUserId = oldImage.get(Configuration.ATTRIBUTE_LIKE_USER_ID).getS();
+        		
+        		LikeReadState readState = new LikeReadState();
+        		readState.setLikeId(likeId);
+        		
+        		String filterExpression = Configuration.ATTRIBUTE_LIKE_READ_STATE_LIKEUSERID + " = :likeUserId";
+        		Map<String, AttributeValue> filterKeyMap = new HashMap<String, AttributeValue>();
+        		filterKeyMap.put(":likeUserId", new AttributeValue().withS(likeUserId));
+        		
+        		DynamoDBQueryExpression<LikeReadState> queryExpression = new DynamoDBQueryExpression<LikeReadState>()
+        				.withHashKeyValues(readState)
+        				.withFilterExpression(filterExpression)
+        				.withExpressionAttributeValues(filterKeyMap)
+        				.withConsistentRead(false);
+        		
+        		List<LikeReadState> results = mapper.query(LikeReadState.class, queryExpression);
+        		
+        		logger.log("query for delete results size : " + results.size());
+        		
+        		for (LikeReadState deleteItem : results) {
+        			mapper.delete(deleteItem);
+        		}
         	}
         }
         

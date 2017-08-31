@@ -124,6 +124,18 @@ public class Configuration {
     public static final String ATTRIBUTE_LIKE_READ_TIME = "ReadTime";
     public static final String ATTRIBUTE_LIKE_HAS_NEW = "HasNew";
     public static final String ATTRIBUTE_LIKE_ID = "LikeId";
+    
+    /**
+     * Like read state
+     */
+    public static final String LIKE_READ_STATE_TALBE = "like_read_state";
+    public static final String INDEX_READSTATE_PRODUCTID_USERID = "ProductId-UserId-index";
+
+    public static final String ATTRIBUTE_LIKE_READ_STATE_LIKE_ID = "LikeId";
+    public static final String ATTRIBUTE_LIKE_READ_STATE_USERID = "UserId";
+    public static final String ATTRIBUTE_LIKE_READ_STATE_PRODUCTID = "ProductId";
+    public static final String ATTRIBUTE_LIKE_READ_STATE_LIKEUSERID = "LikeUserId";
+    public static final String ATTRIBUTE_LIKE_READ_STATE_READTIME = "ReadTime";
 	
 	/**
 	 * attributes in propose table

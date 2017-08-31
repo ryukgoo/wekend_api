@@ -134,7 +134,7 @@ public class SendNotification implements RequestHandler<DynamodbEvent, Object> {
     		
     		if (!StringUtils.isNullOrEmpty(endpointArn) && !endpointArn.equals("EndPoint")) {
     			
-    			++newSendCount;
+    			++newReceiveCount;
     			int totalNotificationCount = newLikeCount + newSendCount + newReceiveCount;
     		
 	    		Map<Platform, Map<String, MessageAttributeValue>> attrsMap = new HashMap<Platform, Map<String, MessageAttributeValue>>();
