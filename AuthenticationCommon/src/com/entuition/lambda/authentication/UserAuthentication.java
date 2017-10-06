@@ -139,6 +139,7 @@ public class UserAuthentication {
 		userInfo.setGender(gender);
 		userInfo.setBirth(birth);
 		userInfo.setPhone(phone);
+		userInfo.setBalloon(1000);
 		
 		userInfo.setNewLikeCount(0);
 		userInfo.setNewSendCount(0);
