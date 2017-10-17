@@ -150,9 +150,11 @@ public class SendNotification implements RequestHandler<DynamodbEvent, Object> {
 					
 					logger.log(TAG + " > Platform is iOS");
 					
-					attrsMap.put(Platform.APNS_SANDBOX, null);
+//					attrsMap.put(Platform.APNS_SANDBOX, null);
+					attrsMap.put(Platform.APNS, null);
 					String apnsMessage = MessageGenerator.getAppleMessage(body, Configuration.TYPE_NOTIFICATION_RECEIVE_MAIL, 0, receiverId, totalNotificationCount);
-					snsClientWrapper.notification(endpointArn, Platform.APNS_SANDBOX, attrsMap, apnsMessage);
+//					snsClientWrapper.notification(endpointArn, Platform.APNS_SANDBOX, attrsMap, apnsMessage);
+					snsClientWrapper.notification(endpointArn, Platform.APNS, attrsMap, apnsMessage);
 				}
 	    		
 				userInfo.setNewLikeCount(newLikeCount);

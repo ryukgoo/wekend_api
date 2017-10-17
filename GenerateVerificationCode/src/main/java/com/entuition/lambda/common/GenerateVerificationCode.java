@@ -18,6 +18,10 @@ public class GenerateVerificationCode implements RequestHandler<VerificationRequ
 		logger = context.getLogger();
 		
 		String phoneNumber = input.getPhone();
+		if (phoneNumber.contains("-")) {
+			phoneNumber = phoneNumber.replace("-", "");
+		}
+		
 		String verificationCode = String.format("%06d", new Random().nextInt(1000000));
 		
 		int member = 100;
@@ -26,6 +30,10 @@ public class GenerateVerificationCode implements RequestHandler<VerificationRequ
         String callphone1 = phoneNumber.substring(0, 3);
         String callphone2 = phoneNumber.substring(3, 7);
         String callphone3 = phoneNumber.substring(7, 11);
+        
+        logger.log("callphone1 : " + callphone1);
+        logger.log("callphone2 : " + callphone2);
+        logger.log("callphone3 : " + callphone3);
 
         final String callmessage = "[Wekend] 인증번호는 " + verificationCode + " 입니다. 정확히 입력해 주세요.";
         String rdate = "00000000";

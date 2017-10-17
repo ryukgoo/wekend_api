@@ -12,6 +12,7 @@ import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.sns.AmazonSNSClient;
 import com.amazonaws.services.sns.model.MessageAttributeValue;
+import com.amazonaws.services.sns.model.NotFoundException;
 import com.entuition.lambda.authentication.Configuration;
 import com.entuition.lambda.authentication.UserAuthentication;
 import com.entuition.lambda.authentication.UserAuthentication.UserInfo;
@@ -60,45 +61,30 @@ public class CreateEndPointARN implements RequestHandler<CreateEndPointARNReques
         try {
         	
 			UserInfo userInfo = userAuthenticator.getUserInfoByUserId(userId);
+			String endpointArn = userInfo.getEndpointARN();
+			logger.log("UserInfo's EndpointARN : " + endpointArn);
 			
-			if (userInfo != null) {
-				logger.log("UserInfo's EndpointARN : " + userInfo.getEndpointARN());				
+			if (endpointArn == null) {
+				endpointArn = createPlatformEndpoint(platform, deviceToken, userId);
+				userInfo.setEndpointARN(endpointArn);
+				userAuthenticator.updateUser(userInfo);
+			} else {
+				try {
+					Map<String, String> attributes = snsClientWrapper.getEndpointArnFromSNS(endpointArn);
+					if (!attributes.get("Token").equals(deviceToken) || !attributes.get("Enabled").equals("true")) {
+						snsClientWrapper.resetPlatformEndpointArn(endpointArn, deviceToken);
+					}					
+				} catch (NotFoundException nfe) {
+					logger.log("NotFoundException > e : " + nfe.getMessage());
+					endpointArn = createPlatformEndpoint(platform, deviceToken, userId);
+					userInfo.setEndpointARN(endpointArn);
+					userAuthenticator.updateUser(userInfo);
+				} catch (Exception e) {
+					logger.log("getEndpointArn > Exception > e : " + e.getMessage());
+				}
 			}
 			
-			if (userInfo.getEndpointARN() != null) {
-				snsClientWrapper.deletePlatformApplication(userInfo.getEndpointARN());
-			}
-			
-	        String applicationName = "Wekend";
-	        
-	        logger.log("platform : " + platform);
-	        logger.log("deviceToken : " + deviceToken);
-	        logger.log("userId : " + userId);
-	        
-	        switch (platform) {
-	        case "Android" :
-	        	
-	        	logger.log("CreateEndPointARN Platform is Android");
-	        	
-	        	String serverAPIKey = Configuration.GCM_SERVER_API_KEY;
-				response.setEndpointARN(snsClientWrapper.getPlatformEndpointARN(Platform.GCM, "",
-	        			serverAPIKey, deviceToken, applicationName, userId));
-	        	break;
-	        	
-	        case "iOS" :
-	        	
-	        	logger.log("CreateEndPointARN Platform is iOS");
-	        	
-	        	String certificate = Configuration.APNS_CERTIFICATE;
-	        	String privateKey = Configuration.APNS_PRIVATEKEY;
-	        	response.setEndpointARN(snsClientWrapper.getPlatformEndpointARN(Platform.APNS_SANDBOX,
-	        			certificate, privateKey, deviceToken, applicationName, userId));
-	        	break;
-	        }
-			
-			userInfo.setEndpointARN(response.getEndpointARN());
-			
-			userAuthenticator.updateUser(userInfo);
+	        response.setEndpointARN(endpointArn);
 			
 			return response;
 			
@@ -122,5 +108,37 @@ public class CreateEndPointARN implements RequestHandler<CreateEndPointARNReques
         
         return response;
     }
+	
+	private String createPlatformEndpoint(String platform, String deviceToken, String userId) {
+		
+		String applicationName = "Wekend";
+        String endpoint = "";
+		
+        switch (platform) {
+        case "Android" :
+        	logger.log("CreateEndPointARN Platform is Android");
+        	endpoint = getPlatformEndpointForAndroid(deviceToken, applicationName, userId);
+        	break;
+        	
+        case "iOS" :
+        	logger.log("CreateEndPointARN Platform is iOS");
+        	endpoint = getPlatformEndpointForiOS(deviceToken, applicationName, userId);
+        	break;
+        }
+        
+        return endpoint;
+	}
+	
+	private String getPlatformEndpointForiOS(String deviceToken, String applicationName, String userId) {
+		String certificate = Configuration.APNS_CERTIFICATE;
+		String privateKey = Configuration.APNS_PRIVATEKEY;
+//		return snsClientWrapper.getPlatformEndpointARN(Platform.APNS_SANDBOX, certificate, privateKey, deviceToken, applicationName, userId);
+		return snsClientWrapper.getPlatformEndpointARN(Platform.APNS, certificate, privateKey, deviceToken, applicationName, userId);
+	}
+	
+	private String getPlatformEndpointForAndroid(String deviceToken, String applicationName, String userId) {
+		String serverAPIKey = Configuration.GCM_SERVER_API_KEY;
+		return snsClientWrapper.getPlatformEndpointARN(Platform.GCM, "", serverAPIKey, deviceToken, applicationName, userId);
+	}
 	
 }

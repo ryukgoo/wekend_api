@@ -7,7 +7,6 @@ import java.util.Map;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBDeleteExpression;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
@@ -18,6 +17,7 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.DynamodbEvent;
 import com.amazonaws.services.lambda.runtime.events.DynamodbEvent.DynamodbStreamRecord;
 import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.model.EndpointDisabledException;
 import com.amazonaws.services.sns.model.MessageAttributeValue;
 import com.amazonaws.util.StringUtils;
 import com.entuition.lambda.authentication.Configuration;
@@ -192,6 +192,7 @@ public class RecommendFriendNotification implements RequestHandler<DynamodbEvent
     		
     		String userId = likeDBItem.getUserId();
     		UserInfo userInfo = mapper.load(UserInfo.class, userId);
+    		if (userInfo == null) continue;
     		String endpointArn = userInfo.getEndpointARN();
     		
     		int newLikeCount = userInfo.getNewLikeCount();
@@ -215,10 +216,11 @@ public class RecommendFriendNotification implements RequestHandler<DynamodbEvent
 	        			String gcmMessage = MessageGenerator.getAndroidMessage(body, Configuration.TYPE_NOTIFICATION_LIKE, likeDBItem.getProductId(), totalNotificationCount);
 	        			snsClientWrapper.notification(endpointArn, Platform.GCM, attrsMap, gcmMessage);
 	        		} else {
-	        			attrsMap.put(Platform.APNS_SANDBOX, null);
-	        			
+//	        			attrsMap.put(Platform.APNS_SANDBOX, null);
+	        			attrsMap.put(Platform.APNS, null);
 	        			String apnsMessage = MessageGenerator.getAppleMessage(body, Configuration.TYPE_NOTIFICATION_LIKE, likeDBItem.getProductId(), userId, totalNotificationCount); 
-	        			snsClientWrapper.notification(endpointArn, Platform.APNS_SANDBOX, attrsMap, apnsMessage);
+//	        			snsClientWrapper.notification(endpointArn, Platform.APNS_SANDBOX, attrsMap, apnsMessage);
+	        			snsClientWrapper.notification(endpointArn, Platform.APNS, attrsMap, apnsMessage);
 	        		}
 	        		
 	        		userInfo.setNewLikeCount(newLikeCount);
@@ -258,9 +260,11 @@ public class RecommendFriendNotification implements RequestHandler<DynamodbEvent
 	    			String gcmMessage = MessageGenerator.getAndroidMessage(body, Configuration.TYPE_NOTIFICATION_LIKE, productId, totalNotificationCount);
 	    			snsClientWrapper.notification(endpointArn, Platform.GCM, attrsMap, gcmMessage);
 	    		} else {
-	    			attrsMap.put(Platform.APNS_SANDBOX, null);
+//	    			attrsMap.put(Platform.APNS_SANDBOX, null);
+	    			attrsMap.put(Platform.APNS, null);
 	    			String apnsMessage = MessageGenerator.getAppleMessage(body, Configuration.TYPE_NOTIFICATION_LIKE, productId, userId, totalNotificationCount); 
-	    			snsClientWrapper.notification(endpointArn, Platform.APNS_SANDBOX, attrsMap, apnsMessage);
+//	    			snsClientWrapper.notification(endpointArn, Platform.APNS_SANDBOX, attrsMap, apnsMessage);
+	    			snsClientWrapper.notification(endpointArn, Platform.APNS, attrsMap, apnsMessage);
 	    		}
 	    		
 	    		userInfo.setNewLikeCount(newLikeCount);
@@ -268,6 +272,8 @@ public class RecommendFriendNotification implements RequestHandler<DynamodbEvent
 	    		userInfo.setNewReceiveCount(newReceiveCount);
 	    		
 	    		mapper.save(userInfo);
+    		} catch (EndpointDisabledException e) {
+    			logger.log("sendSelfNotification > errror : " + e.toString());
     		} catch (Exception e) {
     			logger.log("sendSelfNotification > errror : " + e.toString());
     		}

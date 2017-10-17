@@ -1,6 +1,7 @@
 package com.entuition.lambda.sns;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.amazonaws.services.sns.AmazonSNS;
@@ -11,7 +12,11 @@ import com.amazonaws.services.sns.model.CreatePlatformEndpointResult;
 import com.amazonaws.services.sns.model.DeleteEndpointRequest;
 import com.amazonaws.services.sns.model.GetEndpointAttributesRequest;
 import com.amazonaws.services.sns.model.GetEndpointAttributesResult;
+import com.amazonaws.services.sns.model.InvalidParameterException;
+import com.amazonaws.services.sns.model.ListPlatformApplicationsRequest;
+import com.amazonaws.services.sns.model.ListPlatformApplicationsResult;
 import com.amazonaws.services.sns.model.MessageAttributeValue;
+import com.amazonaws.services.sns.model.PlatformApplication;
 import com.amazonaws.services.sns.model.PublishRequest;
 import com.amazonaws.services.sns.model.PublishResult;
 import com.amazonaws.services.sns.model.SetEndpointAttributesRequest;
@@ -34,6 +39,10 @@ public class AmazonSNSClientWrapper {
 	
 	private CreatePlatformApplicationResult createPlatformApplication(String applicationName, 
 			Platform platform, String principal, String credential) {
+		
+		System.out.println("createPlatformApplication > applicationName : " + applicationName + ", platform : " + platform);
+		System.out.println("principal : " + principal);
+		System.out.println("credential : " + credential);
 		
 		CreatePlatformApplicationRequest platformApplicationRequest = new CreatePlatformApplicationRequest();
 		Map<String, String> attributes = new HashMap<String, String>();
@@ -151,41 +160,72 @@ public class AmazonSNSClientWrapper {
 	public String getPlatformEndpointARN(Platform platform, String principal, String credential,
 			String platformToken, String applicationName, String customData) {
 		
-		CreatePlatformApplicationResult platformApplicationResult =
-				createPlatformApplication(applicationName, platform, principal, credential);
+		System.out.println("getPlatformEndpointARN > platform : " + platform);
 		
-		System.out.println(platformApplicationResult);
+		String platformApplicationArn = "";
 		
-		String platformApplicationArn = platformApplicationResult.getPlatformApplicationArn();
+		try {
+			CreatePlatformApplicationResult platformApplicationResult =
+					createPlatformApplication(applicationName, platform, principal, credential);
+			System.out.println("platformApplicationResult : " + platformApplicationResult);
+			platformApplicationArn = platformApplicationResult.getPlatformApplicationArn();
+		} catch (InvalidParameterException ipe) {
+			for (PlatformApplication application : listPlatformApplicationEndpoint("")) {
+				System.out.println("application > platformName : " + platform.name());
+				if (application.getPlatformApplicationArn().contains(platform.name() + "/Wekend")) {
+					platformApplicationArn = application.getPlatformApplicationArn();
+				}
+			}
+		} 
 		
 		CreatePlatformEndpointResult platformEndpointResult = createPlatformEndpoint(
 				platform,
 				customData,
 				platformToken,
 				platformApplicationArn);
-		System.out.println(platformApplicationResult);
 		
 		return platformEndpointResult.getEndpointArn();
 	}
 	
-	private Map<String, String> getEndpointArnFromSNS(String platformToken) {
+	public Map<String, String> getEndpointArnFromSNS(String endPoint) {
 		
 		GetEndpointAttributesRequest getEndpointAttributesRequest = new GetEndpointAttributesRequest();
-		getEndpointAttributesRequest.setEndpointArn(platformToken);
+		getEndpointAttributesRequest.setEndpointArn(endPoint);
 		
 		GetEndpointAttributesResult getEndpointAttributesResult = client.getEndpointAttributes(getEndpointAttributesRequest);
 		Map<String, String> attributes = getEndpointAttributesResult.getAttributes();
 		return attributes;
 	}
 	
-	private SetEndpointAttributesResult setEndpointArnToSNS(String platformToken) {
-		SetEndpointAttributesRequest setEndpointAttributesRequest = new SetEndpointAttributesRequest();
-		setEndpointAttributesRequest.setEndpointArn(platformToken);
-		
+	public void resetPlatformEndpointArn(String endPointArn, String deviceToken) {
 		Map<String, String> attributes = new HashMap<String, String>();
-		setEndpointAttributesRequest.setAttributes(attributes);
+		attributes.put("Token", deviceToken);
+		attributes.put("Enabled", "true");
 		
-		return client.setEndpointAttributes(setEndpointAttributesRequest);
+		SetEndpointAttributesRequest setEndpointAttributesRequest = new SetEndpointAttributesRequest()
+				.withEndpointArn(endPointArn)
+				.withAttributes(attributes);
+		
+		SetEndpointAttributesResult result = client.setEndpointAttributes(setEndpointAttributesRequest);
+		System.out.println("resetPlatformEndpointArn > result : " + result.toString());
+	}
+	
+	private List<PlatformApplication> listPlatformApplicationEndpoint(String endPointArn) {
+		ListPlatformApplicationsRequest listPlatformApplicationsRequest = new ListPlatformApplicationsRequest();
+//		listPlatformApplicationsRequest.setNextToken(endPointArn);
+		
+		ListPlatformApplicationsResult result = client.listPlatformApplications(listPlatformApplicationsRequest);
+		
+		System.out.println("listPlatformApplicationEndpoint result");
+		
+		for (PlatformApplication application : result.getPlatformApplications()) {
+			System.out.println("application : " + application.getPlatformApplicationArn());
+			for (String key : application.getAttributes().keySet()) {
+				System.out.println("application attributes > key : " + key + ", value : " + application.getAttributes().get(key));
+			}
+		}
+		
+		return result.getPlatformApplications();
 	}
 	
 	/*

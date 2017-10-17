@@ -123,9 +123,11 @@ public class SendMailEvent implements RequestHandler<DynamodbEvent, Object> {
 					String gcmMessage = MessageGenerator.getAndroidMessage(body, Configuration.TYPE_NOTIFICATION_SEND_MAIL, 0, totalNotificationCount);
 					snsClientWrapper.notification(endpointArn, Platform.GCM, attrsMap, gcmMessage);
 				} else {
-					attrsMap.put(Platform.APNS_SANDBOX, null);
+//					attrsMap.put(Platform.APNS_SANDBOX, null);
+					attrsMap.put(Platform.APNS, null);
 					String apnsMessage = MessageGenerator.getAppleMessage(body, Configuration.TYPE_NOTIFICATION_SEND_MAIL, 0, senderId, totalNotificationCount);
-					snsClientWrapper.notification(endpointArn, Platform.APNS_SANDBOX, attrsMap, apnsMessage);
+//					snsClientWrapper.notification(endpointArn, Platform.APNS_SANDBOX, attrsMap, apnsMessage);
+					snsClientWrapper.notification(endpointArn, Platform.APNS, attrsMap, apnsMessage);
 				}
 				
 				userInfo.setNewLikeCount(newLikeCount);
