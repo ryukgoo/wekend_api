@@ -87,11 +87,6 @@ public class AmazonSNSClientWrapper {
 		}
 		publishRequest.setMessageStructure("json");
 		
-//		String platformMessage = getPlatformSampleMessage(platform, message);
-//		Map<String, String> messageMap = new HashMap<String, String>();
-//		messageMap.put(platform.name(), platformMessage);
-//		platformMessage = MessageGenerator.jsonify(messageMap);
-		
 		Map<String, String> messageMap = new HashMap<String, String>();
 		messageMap.put(platform.name(), message);
 		String platformMessage = MessageGenerator.jsonify(messageMap);
@@ -176,7 +171,7 @@ public class AmazonSNSClientWrapper {
 					platformApplicationArn = application.getPlatformApplicationArn();
 				}
 			}
-		}
+		} 
 		
 		CreatePlatformEndpointResult platformEndpointResult = createPlatformEndpoint(
 				platform,

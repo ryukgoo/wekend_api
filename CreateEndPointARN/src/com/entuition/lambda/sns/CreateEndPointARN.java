@@ -65,15 +65,20 @@ public class CreateEndPointARN implements RequestHandler<CreateEndPointARNReques
 			logger.log("UserInfo's EndpointARN : " + endpointArn);
 			
 			if (endpointArn == null) {
-				endpointArn = createPlatformEndpoint(platform, deviceToken, userId);
-				userInfo.setEndpointARN(endpointArn);
+				
+				String newEndpointArn = createPlatformEndpoint(platform, deviceToken, userId);
+				userInfo.setEndpointARN(newEndpointArn);
 				userAuthenticator.updateUser(userInfo);
+				
+				logger.log("updateUser Complete > endpoint : " + endpointArn + "\n newEndpoint : " + newEndpointArn);
+				endpointArn = newEndpointArn;
+				
 			} else {
 				try {
 					Map<String, String> attributes = snsClientWrapper.getEndpointArnFromSNS(endpointArn);
 					if (!attributes.get("Token").equals(deviceToken) || !attributes.get("Enabled").equals("true")) {
 						snsClientWrapper.resetPlatformEndpointArn(endpointArn, deviceToken);
-					}					
+					}
 				} catch (NotFoundException nfe) {
 					logger.log("NotFoundException > e : " + nfe.getMessage());
 					endpointArn = createPlatformEndpoint(platform, deviceToken, userId);
@@ -132,7 +137,6 @@ public class CreateEndPointARN implements RequestHandler<CreateEndPointARNReques
 	private String getPlatformEndpointForiOS(String deviceToken, String applicationName, String userId) {
 		String certificate = Configuration.APNS_CERTIFICATE;
 		String privateKey = Configuration.APNS_PRIVATEKEY;
-//		return snsClientWrapper.getPlatformEndpointARN(Platform.APNS_SANDBOX, certificate, privateKey, deviceToken, applicationName, userId);
 		return snsClientWrapper.getPlatformEndpointARN(Platform.APNS, certificate, privateKey, deviceToken, applicationName, userId);
 	}
 	
